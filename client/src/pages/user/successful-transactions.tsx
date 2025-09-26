@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,8 @@ import {
   Hash,
   TrendingUp,
   TrendingDown,
-  Search
+  Search,
+  Banknote
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Transaction } from "@shared/schema";
@@ -74,6 +75,12 @@ export default function SuccessfulTransactionsPage() {
   // Fetch all transactions for management
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions']
+  });
+
+  // Fetch deposits summary for level 1 users
+  const { data: depositsSummary } = useQuery<{ totalAmount: number; parentUserId: string }>({
+    queryKey: ['/api/deposits/summary'],
+    enabled: true // Always enabled for level 1 users viewing this page
   });
 
   // Update transaction status mutation
@@ -162,15 +169,9 @@ export default function SuccessfulTransactionsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100" data-testid="heading-transactions">
-            مدیریت تراکنش‌ها
-          </h1>
-        </div>
 
         {/* Compact Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
             <div className="flex items-center gap-2">
               <div className="p-1 bg-blue-100 dark:bg-blue-900 rounded">
@@ -240,6 +241,20 @@ export default function SuccessfulTransactionsPage() {
               </div>
             </div>
           </div>
+
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-purple-100 dark:bg-purple-900 rounded">
+                <Banknote className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">واریزی‌ها</p>
+                <p className="text-sm font-bold text-purple-600 dark:text-purple-400" data-testid="stat-deposits">
+                  {formatPrice(depositsSummary?.totalAmount || 0)}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Compact Filters */}
@@ -304,34 +319,35 @@ export default function SuccessfulTransactionsPage() {
           </div>
         </div>
 
-        {/* Transactions List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              لیست تراکنش‌ها ({filteredTransactions.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <DollarSign className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  تراکنشی یافت نشد
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 text-center">
-                  با فیلترهای انتخاب شده تراکنشی موجود نیست
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
+        {/* Transactions Table */}
+        <div className="bg-white dark:bg-gray-800 border rounded-lg overflow-hidden">
+          {filteredTransactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <DollarSign className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                تراکنشی یافت نشد
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 text-center">
+                با فیلترهای انتخاب شده تراکنشی موجود نیست
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">نوع تراکنش</TableHead>
+                  <TableHead className="text-right">مبلغ</TableHead>
+                  <TableHead className="text-right">وضعیت</TableHead>
+                  <TableHead className="text-right">تاریخ انجام</TableHead>
+                  <TableHead className="text-right">حساب</TableHead>
+                  <TableHead className="text-right">کد پیگیری</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="bg-white dark:bg-gray-800 border rounded-lg p-3 hover:shadow-md transition-shadow"
-                    data-testid={`transaction-${transaction.id}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
+                  <TableRow key={transaction.id} data-testid={`transaction-${transaction.id}`}>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <div className={`p-1 rounded-full ${transactionColors[transaction.type as keyof typeof transactionColors]}`}>
                           {transaction.type === 'deposit' && <TrendingUp className="w-3 h-3" />}
@@ -339,61 +355,58 @@ export default function SuccessfulTransactionsPage() {
                           {transaction.type === 'order_payment' && <DollarSign className="w-3 h-3" />}
                           {transaction.type === 'commission' && <DollarSign className="w-3 h-3" />}
                         </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-sm font-medium">
                           {transactionLabels[transaction.type as keyof typeof transactionLabels]}
                         </span>
-                        <Badge className={`${statusColors[transaction.status as keyof typeof statusColors]} text-xs px-1 py-0`}>
-                          {statusLabels[transaction.status as keyof typeof statusLabels]}
-                        </Badge>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900 dark:text-gray-100" data-testid={`amount-${transaction.id}`}>
-                          {formatPrice(Number(transaction.amount))}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs px-2 py-1 h-auto"
-                          onClick={() => handleStatusChange(transaction)}
-                          data-testid={`button-edit-${transaction.id}`}
-                        >
-                          تغییر
-                        </Button>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold" data-testid={`amount-${transaction.id}`}>
+                        {formatPrice(Number(transaction.amount))}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${statusColors[transaction.status as keyof typeof statusColors]} text-xs`}>
+                        {statusLabels[transaction.status as keyof typeof statusLabels]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {transaction.transactionDate && (
+                          <div>{transaction.transactionDate}</div>
+                        )}
+                        {transaction.transactionTime && (
+                          <div className="text-gray-500 text-xs">{transaction.transactionTime}</div>
+                        )}
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
-                      {transaction.transactionDate && (
-                        <div>
-                          <span className="text-gray-500">تاریخ: </span>
-                          {transaction.transactionDate}
-                          {transaction.transactionTime && ` - ${transaction.transactionTime}`}
-                        </div>
-                      )}
-                      {transaction.accountSource && (
-                        <div>
-                          <span className="text-gray-500">حساب: </span>
-                          {transaction.accountSource}
-                        </div>
-                      )}
-                      {transaction.referenceId && (
-                        <div>
-                          <span className="text-gray-500">پیگیری: </span>
-                          {transaction.referenceId}
-                        </div>
-                      )}
-                      {transaction.createdAt && (
-                        <div>
-                          <span className="text-gray-500">ثبت: </span>
-                          {new Date(transaction.createdAt).toLocaleDateString('fa-IR')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {transaction.accountSource || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-mono">
+                        {transaction.referenceId || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs px-2 py-1 h-auto"
+                        onClick={() => handleStatusChange(transaction)}
+                        data-testid={`button-edit-${transaction.id}`}
+                      >
+                        تغییر
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </TableBody>
+            </Table>
+          )}
+        </div>
 
         {/* Status Update Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
