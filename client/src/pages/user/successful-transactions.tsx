@@ -79,8 +79,8 @@ export default function SuccessfulTransactionsPage() {
   // Update transaction status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ transactionId, status }: { transactionId: string; status: string }) => {
-      const response = await apiRequest(`/api/transactions/${transactionId}/status`, 'PUT', { status });
-      return response;
+      const response = await apiRequest('PUT', `/api/transactions/${transactionId}/status`, { status });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -169,171 +169,140 @@ export default function SuccessfulTransactionsPage() {
           </h1>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    کل تراکنش‌ها
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2" data-testid="stat-total">
-                    {stats.total}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                  <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
+        {/* Compact Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-blue-100 dark:bg-blue-900 rounded">
+                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    در انتظار
-                  </p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-2" data-testid="stat-pending">
-                    {stats.pending}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
-                  <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    تکمیل شده
-                  </p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2" data-testid="stat-completed">
-                    {stats.completed}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    رد شده
-                  </p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-2" data-testid="stat-failed">
-                    {stats.failed}
-                  </p>
-                </div>
-                <div className="p-3 bg-red-100 dark:bg-red-900 rounded-full">
-                  <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    مجموع مبلغ
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2" data-testid="stat-amount">
-                    {formatPrice(stats.totalAmount)}
-                  </p>
-                </div>
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              فیلترها
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>جستجو</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="جستجو در توضیحات، شماره پیگیری..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    data-testid="input-search"
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>وضعیت</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger data-testid="select-status-filter">
-                    <SelectValue placeholder="انتخاب وضعیت" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">همه</SelectItem>
-                    <SelectItem value="pending">در انتظار</SelectItem>
-                    <SelectItem value="completed">تکمیل شده</SelectItem>
-                    <SelectItem value="failed">رد شده</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>نوع تراکنش</Label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger data-testid="select-type-filter">
-                    <SelectValue placeholder="انتخاب نوع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">همه</SelectItem>
-                    <SelectItem value="deposit">واریز</SelectItem>
-                    <SelectItem value="withdraw">برداشت</SelectItem>
-                    <SelectItem value="order_payment">پرداخت سفارش</SelectItem>
-                    <SelectItem value="commission">کمیسیون</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setStatusFilter("all");
-                    setTypeFilter("all");
-                    setSearchTerm("");
-                  }}
-                  data-testid="button-clear-filters"
-                  className="w-full"
-                >
-                  پاک کردن فیلترها
-                </Button>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">کل تراکنش‌ها</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100" data-testid="stat-total">
+                  {stats.total}
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-yellow-100 dark:bg-yellow-900 rounded">
+                <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">در انتظار</p>
+                <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400" data-testid="stat-pending">
+                  {stats.pending}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-green-100 dark:bg-green-900 rounded">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">تکمیل شده</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="stat-completed">
+                  {stats.completed}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-red-100 dark:bg-red-900 rounded">
+                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">رد شده</p>
+                <p className="text-lg font-bold text-red-600 dark:text-red-400" data-testid="stat-failed">
+                  {stats.failed}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-gray-100 dark:bg-gray-700 rounded">
+                <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 dark:text-gray-300">مجموع مبلغ</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100" data-testid="stat-amount">
+                  {formatPrice(stats.totalAmount)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Filters */}
+        <div className="bg-white dark:bg-gray-800 border rounded-lg p-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Filter className="w-4 h-4" />
+              فیلتر:
+            </div>
+            
+            <div className="relative min-w-48">
+              <Search className="absolute left-3 top-2.5 w-3 h-3 text-gray-400" />
+              <Input
+                placeholder="جستجو..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                data-testid="input-search"
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-28 h-8 text-xs" data-testid="select-status-filter">
+                <SelectValue placeholder="وضعیت" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value="pending">در انتظار</SelectItem>
+                <SelectItem value="completed">تکمیل شده</SelectItem>
+                <SelectItem value="failed">رد شده</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-32 h-8 text-xs" data-testid="select-type-filter">
+                <SelectValue placeholder="نوع تراکنش" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value="deposit">واریز</SelectItem>
+                <SelectItem value="withdraw">برداشت</SelectItem>
+                <SelectItem value="order_payment">پرداخت سفارش</SelectItem>
+                <SelectItem value="commission">کمیسیون</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(statusFilter !== "all" || typeFilter !== "all" || searchTerm) && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setTypeFilter("all");
+                  setSearchTerm("");
+                }}
+                data-testid="button-clear-filters"
+                className="text-xs h-8 px-2"
+              >
+                ✕ پاک کردن
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Transactions List */}
         <Card>
@@ -355,79 +324,69 @@ export default function SuccessfulTransactionsPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-3">
                 {filteredTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="bg-white dark:bg-gray-800 border rounded-lg p-3 hover:shadow-md transition-shadow"
                     data-testid={`transaction-${transaction.id}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${transactionColors[transaction.type as keyof typeof transactionColors]}`}>
-                        {transaction.type === 'deposit' && <TrendingUp className="w-4 h-4" />}
-                        {transaction.type === 'withdraw' && <TrendingDown className="w-4 h-4" />}
-                        {transaction.type === 'order_payment' && <DollarSign className="w-4 h-4" />}
-                        {transaction.type === 'commission' && <DollarSign className="w-4 h-4" />}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1 rounded-full ${transactionColors[transaction.type as keyof typeof transactionColors]}`}>
+                          {transaction.type === 'deposit' && <TrendingUp className="w-3 h-3" />}
+                          {transaction.type === 'withdraw' && <TrendingDown className="w-3 h-3" />}
+                          {transaction.type === 'order_payment' && <DollarSign className="w-3 h-3" />}
+                          {transaction.type === 'commission' && <DollarSign className="w-3 h-3" />}
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {transactionLabels[transaction.type as keyof typeof transactionLabels]}
+                        </span>
+                        <Badge className={`${statusColors[transaction.status as keyof typeof statusColors]} text-xs px-1 py-0`}>
+                          {statusLabels[transaction.status as keyof typeof statusLabels]}
+                        </Badge>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                            {transactionLabels[transaction.type as keyof typeof transactionLabels]}
-                          </h4>
-                          <Badge className={statusColors[transaction.status as keyof typeof statusColors]}>
-                            {statusLabels[transaction.status as keyof typeof statusLabels]}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">
-                          {transaction.transactionDate && (
-                            <p>تاریخ انجام: {transaction.transactionDate}</p>
-                          )}
-                          {transaction.transactionTime && (
-                            <p>ساعت انجام: {transaction.transactionTime}</p>
-                          )}
-                          {transaction.accountSource && (
-                            <p>از حساب: {transaction.accountSource}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {transaction.userId && (
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              کاربر: {transaction.userId.substring(0, 8)}
-                            </div>
-                          )}
-                          {transaction.referenceId && (
-                            <div className="flex items-center gap-1">
-                              <Hash className="w-3 h-3" />
-                              رف: {transaction.referenceId}
-                            </div>
-                          )}
-                          {transaction.createdAt && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(transaction.createdAt).toLocaleDateString('fa-IR')}
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 dark:text-gray-100" data-testid={`amount-${transaction.id}`}>
+                          {formatPrice(Number(transaction.amount))}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs px-2 py-1 h-auto"
+                          onClick={() => handleStatusChange(transaction)}
+                          data-testid={`button-edit-${transaction.id}`}
+                        >
+                          تغییر
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-left">
-                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100" data-testid={`amount-${transaction.id}`}>
-                          {formatPrice(Number(transaction.amount))}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {transaction.paymentMethod}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStatusChange(transaction)}
-                        data-testid={`button-edit-${transaction.id}`}
-                      >
-                        تغییر وضعیت
-                      </Button>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                      {transaction.transactionDate && (
+                        <div>
+                          <span className="text-gray-500">تاریخ: </span>
+                          {transaction.transactionDate}
+                          {transaction.transactionTime && ` - ${transaction.transactionTime}`}
+                        </div>
+                      )}
+                      {transaction.accountSource && (
+                        <div>
+                          <span className="text-gray-500">حساب: </span>
+                          {transaction.accountSource}
+                        </div>
+                      )}
+                      {transaction.referenceId && (
+                        <div>
+                          <span className="text-gray-500">پیگیری: </span>
+                          {transaction.referenceId}
+                        </div>
+                      )}
+                      {transaction.createdAt && (
+                        <div>
+                          <span className="text-gray-500">ثبت: </span>
+                          {new Date(transaction.createdAt).toLocaleDateString('fa-IR')}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
