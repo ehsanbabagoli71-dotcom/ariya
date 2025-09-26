@@ -73,7 +73,7 @@ export default function SuccessfulTransactionsPage() {
 
   // Fetch all transactions for management
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
-    queryKey: ['/api/transactions/all']
+    queryKey: ['/api/transactions']
   });
 
   // Update transaction status mutation
@@ -83,7 +83,7 @@ export default function SuccessfulTransactionsPage() {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions/all'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       setDialogOpen(false);
       setSelectedTransaction(null);
       setNewStatus("");
