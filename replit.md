@@ -4,6 +4,20 @@ This is a modern Persian e-commerce and support web application built with a ful
 
 # Recent Changes
 
+## September 26, 2025 (Evening)
+- **Compact Transaction Management**: Completely redesigned transactions page from large table format to compact card layout
+- **Space Efficient Design**: Replaced bulky stats cards with condensed horizontal cards for better space utilization
+- **Streamlined Filters**: Transformed filter panel from full-width card to compact horizontal filter bar with inline controls
+- **Improved Mobile Experience**: Card-based layout provides better responsiveness and readability on smaller screens
+- **Code Cleanup**: Removed unused Table components and imports to maintain clean codebase
+- **User Interface Enhancement**: Maintained all functionality while reducing vertical space usage by ~60%
+
+## September 26, 2025 (Morning)
+- **Transaction Status Update Bug Fix**: Fixed critical bug in transaction status change functionality for level 1 users
+- **API Request Parameter Order**: Corrected parameter order in apiRequest calls for successful-transactions.tsx
+- **Status Change Dialog**: Resolved issue where status update requests were failing due to incorrect API call structure
+- **User Experience Enhancement**: Transaction status changes now work properly with appropriate success/error toasts and cache invalidation
+
 ## September 24, 2025
 - **Unread Messages Badge System**: Implemented comprehensive unread message notification system for internal chat functionality
 - **API Endpoint Enhancement**: Added new `/api/internal-chats/unread-count` endpoint that returns count of unread messages for current user based on role
