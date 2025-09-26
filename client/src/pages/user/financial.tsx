@@ -268,13 +268,12 @@ export default function FinancialPage() {
                       <FormItem>
                         <FormLabel>تاریخ انجام تراکنش</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="text"
-                            {...field}
-                            placeholder="1403/07/05"
+                          <PersianDatePicker 
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="انتخاب تاریخ"
                             data-testid="input-transaction-date"
                             className="text-right"
-                            dir="rtl"
                           />
                         </FormControl>
                         <FormMessage />
