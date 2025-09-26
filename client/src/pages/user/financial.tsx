@@ -75,11 +75,17 @@ const statusLabels = {
   failed: "ناموفق"
 };
 
-const depositWithdrawSchema = insertTransactionSchema.extend({
+const depositWithdrawSchema = z.object({
+  type: z.literal("deposit"),
   amount: z.coerce.number().positive("مبلغ باید مثبت باشد"),
+  status: z.literal("pending"),
   transactionDate: z.string().min(1, "تاریخ انجام تراکنش الزامی است"),
   transactionTime: z.string().min(1, "ساعت انجام تراکنش الزامی است"),
-  accountSource: z.string().min(1, "از حساب الزامی است")
+  accountSource: z.string().min(1, "از حساب الزامی است"),
+  paymentMethod: z.string().default("card"),
+  referenceId: z.string().optional(),
+  userId: z.string().optional(), // Server sets this
+  orderId: z.string().optional(),
 });
 
 export default function FinancialPage() {
@@ -131,8 +137,8 @@ export default function FinancialPage() {
   // Create transaction request mutation
   const createTransactionMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/transactions', 'POST', data);
-      return response;
+      const response = await apiRequest('POST', '/api/transactions', data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -153,15 +159,21 @@ export default function FinancialPage() {
   });
 
   const onSubmit = (data: any) => {
-    console.log('Form submission data:', data);
-    console.log('Form errors:', form.formState.errors);
+    console.log('✅ Form submitted successfully with data:', data);
+    console.log('✅ Form errors:', form.formState.errors);
+    
+    // Force amount to be string for API
     const payload = {
       ...data,
-      type: transactionType,
       amount: String(data.amount)
     };
-    console.log('Payload being sent:', payload);
+    
+    console.log('✅ Final payload being sent to server:', payload);
     createTransactionMutation.mutate(payload);
+  };
+
+  const onError = (errors: any) => {
+    console.log('❌ Form validation failed:', errors);
   };
 
   const formatPrice = (price: number) => {
@@ -225,7 +237,7 @@ export default function FinancialPage() {
               </DialogHeader>
               
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log('Form validation errors:', errors))} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="amount"
@@ -256,12 +268,13 @@ export default function FinancialPage() {
                       <FormItem>
                         <FormLabel>تاریخ انجام تراکنش</FormLabel>
                         <FormControl>
-                          <PersianDatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="انتخاب تاریخ"
+                          <Input 
+                            type="text"
+                            {...field}
+                            placeholder="1403/07/05"
                             data-testid="input-transaction-date"
                             className="text-right"
+                            dir="rtl"
                           />
                         </FormControl>
                         <FormMessage />
@@ -333,47 +346,15 @@ export default function FinancialPage() {
 
                   <div className="flex gap-3 pt-4">
                     <Button 
-                      type="button" 
+                      type="submit" 
                       disabled={createTransactionMutation.isPending}
                       data-testid="button-submit-transaction"
-                      onClick={() => alert('کلیک کردی!')}
-                      className="bg-red-500 hover:bg-red-600 text-white"
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
                     >
-                      {createTransactionMutation.isPending ? "در حال ثبت..." : "تست کلیک"}
+                      {createTransactionMutation.isPending ? "در حال ثبت..." : "ثبت درخواست"}
                     </Button>
+
                     
-                    <Button 
-                      type="button" 
-                      disabled={createTransactionMutation.isPending}
-                      onClick={async () => {
-                        try {
-                          const formData = {
-                            type: "deposit",
-                            amount: "1000000",
-                            status: "pending",
-                            transactionDate: "2025-09-26",
-                            transactionTime: "14:38",
-                            accountSource: "صادرات",
-                            paymentMethod: "card",
-                            referenceId: "1234444"
-                          };
-                          
-                          console.log('Direct API call with:', formData);
-                          const response = await apiRequest('/api/transactions', 'POST', formData);
-                          console.log('Response:', response);
-                          alert('موفق! ' + JSON.stringify(response));
-                          
-                          // Refresh data
-                          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-                          setDialogOpen(false);
-                        } catch (error: any) {
-                          console.error('Error:', error);
-                          alert('خطا: ' + (error?.message || error));
-                        }
-                      }}
-                    >
-                      ثبت مستقیم
-                    </Button>
                     <Button 
                       type="button" 
                       variant="outline" 
