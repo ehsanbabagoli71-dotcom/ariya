@@ -124,6 +124,10 @@ export interface IStorage {
   updateTransactionStatus(id: string, status: string): Promise<Transaction | undefined>;
   getUserBalance(userId: string): Promise<number>;
   getSuccessfulTransactionsBySellers(sellerIds: string[]): Promise<Transaction[]>;
+  // Deposit approval methods
+  getDepositsByParent(parentUserId: string): Promise<Transaction[]>;
+  approveDeposit(transactionId: string, approvedByUserId: string): Promise<Transaction | undefined>;
+  getApprovedDepositsTotalByParent(parentUserId: string): Promise<number>;
   
   // Internal Chats
   getInternalChatById(id: string): Promise<InternalChat | undefined>;
@@ -1350,8 +1354,16 @@ export class MemStorage implements IStorage {
       id,
       orderId: insertTransaction.orderId || null,
       status: insertTransaction.status || "pending",
+      transactionDate: insertTransaction.transactionDate || null,
+      transactionTime: insertTransaction.transactionTime || null,
+      accountSource: insertTransaction.accountSource || null,
       paymentMethod: insertTransaction.paymentMethod || null,
       referenceId: insertTransaction.referenceId || null,
+      // Parent-child deposit approval fields
+      initiatorUserId: insertTransaction.initiatorUserId || null,
+      parentUserId: insertTransaction.parentUserId || null,
+      approvedByUserId: insertTransaction.approvedByUserId || null,
+      approvedAt: insertTransaction.approvedAt || null,
       createdAt: new Date(),
     };
     
@@ -1401,6 +1413,45 @@ export class MemStorage implements IStorage {
         return order && sellerIds.includes(order.sellerId);
       })
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  // Deposit approval methods
+  async getDepositsByParent(parentUserId: string): Promise<Transaction[]> {
+    return Array.from(this.transactions.values())
+      .filter(transaction => 
+        transaction.type === 'deposit' && 
+        transaction.parentUserId === parentUserId
+      )
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async approveDeposit(transactionId: string, approvedByUserId: string): Promise<Transaction | undefined> {
+    const transaction = this.transactions.get(transactionId);
+    if (!transaction) return undefined;
+    
+    const updatedTransaction: Transaction = {
+      ...transaction,
+      status: 'completed',
+      approvedByUserId,
+      approvedAt: new Date(),
+    };
+    
+    this.transactions.set(transactionId, updatedTransaction);
+    return updatedTransaction;
+  }
+
+  async getApprovedDepositsTotalByParent(parentUserId: string): Promise<number> {
+    const approvedDeposits = Array.from(this.transactions.values())
+      .filter(transaction => 
+        transaction.type === 'deposit' && 
+        transaction.parentUserId === parentUserId &&
+        transaction.status === 'completed' &&
+        transaction.approvedByUserId
+      );
+    
+    return approvedDeposits.reduce((total, transaction) => {
+      return total + parseFloat(transaction.amount);
+    }, 0);
   }
 
   // Internal Chat methods

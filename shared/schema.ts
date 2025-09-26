@@ -210,6 +210,11 @@ export const transactions = pgTable("transactions", {
   accountSource: text("account_source"), // از حساب
   paymentMethod: text("payment_method"), // cash, card, bank_transfer, etc.
   referenceId: text("reference_id"), // شماره پیگیری
+  // Parent-child deposit approval fields
+  initiatorUserId: varchar("initiator_user_id").references(() => users.id), // کاربر فرزند که تراکنش را ایجاد کرده
+  parentUserId: varchar("parent_user_id").references(() => users.id), // کاربر والد که باید تایید کند
+  approvedByUserId: varchar("approved_by_user_id").references(() => users.id), // کاربر والد که تایید کرده
+  approvedAt: timestamp("approved_at"), // زمان تایید
   createdAt: timestamp("created_at").defaultNow(),
 });
 

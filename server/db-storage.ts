@@ -1241,6 +1241,43 @@ export class DbStorage implements IStorage {
       .orderBy(desc(transactions.createdAt));
   }
 
+  // Deposit approval methods
+  async getDepositsByParent(parentUserId: string): Promise<Transaction[]> {
+    return await db.select().from(transactions)
+      .where(and(
+        eq(transactions.type, 'deposit'),
+        eq(transactions.parentUserId, parentUserId)
+      ))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  async approveDeposit(transactionId: string, approvedByUserId: string): Promise<Transaction | undefined> {
+    const result = await db.update(transactions)
+      .set({ 
+        status: 'completed',
+        approvedByUserId,
+        approvedAt: new Date()
+      })
+      .where(eq(transactions.id, transactionId))
+      .returning();
+    return result[0];
+  }
+
+  async getApprovedDepositsTotalByParent(parentUserId: string): Promise<number> {
+    const result = await db.select({
+      total: sql<number>`COALESCE(SUM(amount::numeric), 0)::numeric`
+    })
+    .from(transactions)
+    .where(and(
+      eq(transactions.type, 'deposit'),
+      eq(transactions.parentUserId, parentUserId),
+      eq(transactions.status, 'completed'),
+      sql`approved_by_user_id IS NOT NULL`
+    ));
+    
+    return Number(result[0].total);
+  }
+
   // Internal Chat methods
   async getInternalChatById(id: string): Promise<InternalChat | undefined> {
     const result = await db.select().from(internalChats).where(eq(internalChats.id, id)).limit(1);

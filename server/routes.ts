@@ -2135,6 +2135,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DEPOSIT APPROVAL ROUTES
+  // =======================
+
+  // Get approved deposits total for level 1 user
+  app.get("/api/deposits/summary", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
+    try {
+      const parentUserId = req.user!.id;
+      const total = await storage.getApprovedDepositsTotalByParent(parentUserId);
+      
+      res.json({ 
+        totalAmount: total,
+        parentUserId 
+      });
+    } catch (error) {
+      console.error("Error getting approved deposits summary:", error);
+      res.status(500).json({ message: "خطا در دریافت خلاصه واریزی‌ها" });
+    }
+  });
+
+  // Get deposits awaiting approval by parent
+  app.get("/api/deposits", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
+    try {
+      const parentUserId = req.user!.id;
+      const deposits = await storage.getDepositsByParent(parentUserId);
+      
+      res.json(deposits);
+    } catch (error) {
+      console.error("Error getting deposits:", error);
+      res.status(500).json({ message: "خطا در دریافت درخواست‌های واریز" });
+    }
+  });
+
+  // Approve deposit (for level 1 users)
+  app.put("/api/deposits/:id/approve", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const approvedByUserId = req.user!.id;
+
+      // Check if deposit exists and belongs to this parent
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: "درخواست واریز یافت نشد" });
+      }
+
+      // Verify this is a deposit and belongs to current user's children
+      if (transaction.type !== 'deposit' || transaction.parentUserId !== approvedByUserId) {
+        return res.status(403).json({ message: "شما مجاز به تایید این واریز نیستید" });
+      }
+
+      // Already approved
+      if (transaction.status === 'completed' && transaction.approvedByUserId) {
+        return res.status(400).json({ message: "این واریز قبلاً تایید شده است" });
+      }
+
+      // Approve the deposit
+      const approvedDeposit = await storage.approveDeposit(id, approvedByUserId);
+      if (!approvedDeposit) {
+        return res.status(500).json({ message: "خطا در تایید واریز" });
+      }
+
+      res.json(approvedDeposit);
+    } catch (error) {
+      console.error("Error approving deposit:", error);
+      res.status(500).json({ message: "خطا در تایید واریز" });
+    }
+  });
+
   // INTERNAL CHAT ROUTES
   // ====================
 
