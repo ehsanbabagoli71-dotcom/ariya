@@ -2014,10 +2014,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type } = req.query;
       
       let transactions;
-      if (type && typeof type === 'string') {
-        transactions = await storage.getTransactionsByUserAndType(req.user!.id, type);
-      } else {
-        transactions = await storage.getTransactionsByUser(req.user!.id);
+      
+      // برای کاربران سطح ۱: تراکنش‌های خودشان + فرزندانشان
+      if (req.user!.role === 'user_level_1') {
+        // دریافت زیرمجموعه‌ها (فرزندان)
+        const subUsers = await storage.getSubUsers(req.user!.id);
+        const allUserIds = [req.user!.id, ...subUsers.map(user => user.id)];
+        
+        // دریافت تراکنش‌های تمام کاربران (خودش + فرزندان)
+        const allTransactions = [];
+        for (const userId of allUserIds) {
+          if (type && typeof type === 'string') {
+            const userTransactions = await storage.getTransactionsByUserAndType(userId, type);
+            allTransactions.push(...userTransactions);
+          } else {
+            const userTransactions = await storage.getTransactionsByUser(userId);
+            allTransactions.push(...userTransactions);
+          }
+        }
+        
+        // مرتب‌سازی بر اساس تاریخ ایجاد (جدیدترین اول)
+        transactions = allTransactions.sort((a, b) => 
+          new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+        );
+      } 
+      // برای سایر کاربران: فقط تراکنش‌های خودشان
+      else {
+        if (type && typeof type === 'string') {
+          transactions = await storage.getTransactionsByUserAndType(req.user!.id, type);
+        } else {
+          transactions = await storage.getTransactionsByUser(req.user!.id);
+        }
       }
       
       res.json(transactions);
