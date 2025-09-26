@@ -2095,6 +2095,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update transaction status (for admin/level1 users)
+  app.put("/api/transactions/:id/status", authenticateToken, requireAdminOrLevel1, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      // Validate status
+      if (!status || !['pending', 'completed', 'failed'].includes(status)) {
+        return res.status(400).json({ message: "وضعیت معتبر نیست" });
+      }
+
+      // Check if transaction exists and user has permission
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: "تراکنش یافت نشد" });
+      }
+
+      // For level_1 users, they can only update transactions of their sub-users or themselves
+      if (req.user!.role === 'user_level_1') {
+        const subUsers = await storage.getSubUsers(req.user!.id);
+        const allowedUserIds = [req.user!.id, ...subUsers.map(user => user.id)];
+        
+        if (!allowedUserIds.includes(transaction.userId)) {
+          return res.status(403).json({ message: "شما مجاز به تغییر این تراکنش نیستید" });
+        }
+      }
+
+      // Update transaction status
+      const updatedTransaction = await storage.updateTransactionStatus(id, status);
+      if (!updatedTransaction) {
+        return res.status(500).json({ message: "خطا در به‌روزرسانی تراکنش" });
+      }
+
+      res.json(updatedTransaction);
+    } catch (error) {
+      console.error("Error updating transaction status:", error);
+      res.status(500).json({ message: "خطا در به‌روزرسانی وضعیت" });
+    }
+  });
+
   // INTERNAL CHAT ROUTES
   // ====================
 
